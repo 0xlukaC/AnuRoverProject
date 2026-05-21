@@ -13,7 +13,8 @@ struct prevMoves {
 int *recordAngle(int theta, int delay, int *dir) {
   setServoAngle(theta, delay);
   int dist = getDistanceCM();
-  if (dir != NULL) dir = &dist;
+  if (dir != NULL)
+    dir = &dist;
   return dir;
 }
 
@@ -50,7 +51,8 @@ void fixPosition(int left, int right, int front) {
   int error = left - right;
 
   // already centred → go straight
-  if (abs(error) <= DEADZONE) return;
+  if (abs(error) <= DEADZONE)
+    return;
 
   if (error > 0)
     turn(3, LEFT); // more space on left → drift left

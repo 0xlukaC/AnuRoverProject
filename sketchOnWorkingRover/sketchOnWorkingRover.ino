@@ -1,7 +1,7 @@
   #include <Servo.h>
   // https://canvas.anu.edu.au/courses/5696/assignments/24351
   // 123 / 30 (frames per second)
-  const int turn360 = 4950; // ms to turn 360 degrees at full speed 4050
+  const int turn360 = 4100; // ms to turn 360 degrees at full speed 4050
   const int cmPs = 7; // 7 cm per second
 
   const int enablePin1 = 11;  // Green
@@ -149,15 +149,22 @@
     long ForwardDistance = getDistanceCM();
     if (ForwardDistance < 10) {
       motorsStop();
-      motorsBack(150); // was 300
+     motorsBack(300); // was 300
       checkLeftRight(left, right);
       // if (left > right)  turn(90, LEFT);
       // else turn(90, RIGHT);
-      int backupAngle = 15;
-      turn(backupAngle, (left > right) ? LEFT : RIGHT);
+      // int backupAngle = 45;
+      
+      // turn(backupAngle, (left > right) ? LEFT : RIGHT);
+      
       // motorsBackDistance(4);
-      motorsBack(300);
-      turn(90 - backupAngle, (left < right) ? LEFT : RIGHT);
+      TDir direction = (left > right) ? LEFT : RIGHT;
+      motorsBack(500);
+      turn(45, direction);
+      motorsForward(300);
+      turn(45, direction);
+      
+
     }
     motorsForward(0);
   }
@@ -180,14 +187,22 @@
     pinMode(motor2Pin2, OUTPUT);  // motor2Pin2
 
     // objectDetectionTest();
-    // Serial.begin(9600); // note this will add computational lode, please comment out
+    Serial.begin(9600); // note this will add computational lode, please comment out
+    // turn(90, LEFT);
+    // delay(700);
+    // turn(90, RIGHT);
+    // delay(700);
+    // turn(45, LEFT);
+    // delay(700);
+    // turn(45, RIGHT);
+    turn(360, LEFT);
   }
 
 
   // LOOP
   void loop() {
   
-    turnTest();
+    // turnTest();
     //  servoScanTest();
   }
 
@@ -210,4 +225,3 @@
     setServoAngle(0 , 500); // pointing right
     setServoAngle(180, 500); // back pointing left
   }
-
