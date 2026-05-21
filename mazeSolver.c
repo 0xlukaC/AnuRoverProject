@@ -86,41 +86,41 @@ void fixPosition(int left, int right, int front) {
 }
 
 void forwardEncounter(int distance) {
-  // int left = *recordAngle(10, 200, NULL);
-  // int right = *recordAngle(170, 200, NULL);
-  // // bools
-  // int collisionTRight = right > 16;
-  // int colliisionTLeft = left > 16; // the rover is 16.5 cm long
-  // int gLeft = left <= 15;
-  // int gRight = right <= 15;
-  //
-  // motorsStop();
-  //
-  // // WARNING:
-  // fixPosition(left, right, distance);
-  //
-  // if (gLeft && gRight) { // you are boxed in; the only way to go is backwards
-  //   int newDistance = 7 + (19 - distance);
-  //   motorsBackDistance(newDistance); // go 7 back into the previous squre
-  //
-  //   // maybe just call this function again
-  // }
-  // // we need to check whether rotating would hit a wall or not
-  //
-  // // both ways are open This could also mean you back is to the wall
-  // if (!gLeft && !gRight) {
-  //   // motorsBack(300); // choose left |
-  //   turn(90, LEFT);
-  // }
-  //
-  // // one way is open
-  // motorsBack(300);
-  // if (left > right)
-  //   turn(90, LEFT);
-  // else
-  //   turn(90, RIGHT);
-  //
-  // // if (lef)
+  int left = *recordAngle(10, 200, NULL);
+  int right = *recordAngle(170, 200, NULL);
+  // bools
+  int collisionTRight = right > 16;
+  int colliisionTLeft = left > 16; // the rover is 16.5 cm long
+  int gLeft = left <= 15;
+  int gRight = right <= 15;
+
+  motorsStop();
+
+  // WARNING:
+  fixPosition(left, right, distance);
+
+  if (gLeft && gRight) { // you are boxed in; the only way to go is backwards
+    int newDistance = 7 + (19 - distance);
+    motorsBackDistance(newDistance); // go 7 back into the previous squre
+
+    // maybe just call this function again
+  }
+  // we need to check whether rotating would hit a wall or not
+
+  // both ways are open This could also mean you back is to the wall
+  if (!gLeft && !gRight) {
+    // motorsBack(300); // choose left |
+    turn(90, LEFT);
+  }
+
+  // one way is open
+  motorsBack(300);
+  if (left > right)
+    turn(90, LEFT);
+  else
+    turn(90, RIGHT);
+
+  // if (lef)
 }
 
 const int sideLimit = 4;

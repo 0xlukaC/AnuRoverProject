@@ -2,6 +2,9 @@
   // https://canvas.anu.edu.au/courses/5696/assignments/24351
   // 123 / 30 (frames per second)
   const int turn360 = 3667; // ms to turn 360 degrees at full speed 4050  
+  const int turn360RIGHT = 3600;// 71 125 = 2(54/30) 3580
+  //98 - 70 = 28 28/30 = 0.9333 = 933ms
+
   //  2(55/30) = 3.66666666667 = 3666.66666667 ms 
   const int cmPs = 7; // 7 cm per second
 
@@ -75,7 +78,8 @@
       digitalWrite(motor2Pin1, LOW); digitalWrite(motor2Pin2, HIGH);
     }
     
-    delay(turn360 * (theta / 360.0));
+    if (dir == LEFT) delay(turn360 * (theta / 360.0));
+    else delay(turn360RIGHT * (theta / 360.0));
     motorsStop();
   }
 
@@ -107,7 +111,58 @@
   }
 
 
-  // void firstTest() {
+ // first test:
+ void straightLineDemo() {
+
+  // forward for 2 seconds (adjust for your cm/s calibration)
+  motorsForward(2000);
+  motorsStop();
+
+  delay(3000); // stop for 3 seconds
+
+  // reverse same time back
+  motorsBack(2000);
+  motorsStop();
+
+  while (true); // end
+}
+
+void turn90(TDir dir) {
+
+  digitalWrite(enablePin1, HIGH);
+  digitalWrite(enablePin2, HIGH);
+
+  if (dir == RIGHT) {
+    digitalWrite(motor1Pin1, LOW);
+    digitalWrite(motor1Pin2, HIGH);
+    digitalWrite(motor2Pin1, HIGH);
+    digitalWrite(motor2Pin2, LOW);
+  } else {
+    digitalWrite(motor1Pin1, HIGH);
+    digitalWrite(motor1Pin2, LOW);
+    digitalWrite(motor2Pin1, LOW);
+    digitalWrite(motor2Pin2, HIGH);
+  }
+
+  delay(933);
+  motorsStop();
+}
+void driveSquare(TDir dir) {
+
+  int sideTime = 1500;
+
+  for (int i = 0; i < 4; i++) {
+
+    motorsForward(sideTime);
+    motorsStop();
+    delay(300);
+
+    turn90(dir);
+    delay(300);
+  }
+
+  while (true);
+}
 
 
   // second test
@@ -173,9 +228,12 @@
 ///////////////////////////////
 /// START COPY FROM NVIM
 //////////////////////////////const int USquareWidth = 19; // cm
+
+
 const int USquareWidth = 19; // cm
+const int RoverWidth = 9;    // cm
 const int SERVO_WAIT = 125;  // ms
-const int sideLimit = 6;     // cm
+const int sideLimit = 5;     // cm
 
 void jankTurn(int theta, TDir direction, int time[], size_t length) {
   for (size_t i = 0; i < length; i++) {
@@ -215,11 +273,38 @@ void forwardEncounter(int front) {
   motorsStop();
   int left = recordAngle(10, SERVO_WAIT, NULL);
   int right = recordAngle(180, SERVO_WAIT, NULL);
-  // if no walls either side pick left
-  if (left > 18 && right > 18) {
-    turn(90, LEFT);
-    return;
-  }
+  //   int speeds1[] = {70, 70};
+  // jankTurn(90, LEFT, speeds1, sizeof(speeds1) / sizeof(speeds1[0]));
+
+  // // if no walls either side pick left
+  // if (left > 16 && right > 16) {
+  //   turn(90, LEFT);
+  //   return;
+  // }
+  //
+  // // both blocked
+  // if (left <= 17 && right <= 17) {
+  //   // rotate until left + right = USquareWidth - roverWidth,, until straight
+  //   TDir rotateDir =
+  //       (left >= right) ? RIGHT : LEFT; // this is sort of just a guess
+  //   while ((left + right) - 4 > USquareWidth - RoverWidth) {
+  //     // turn((abs(left - right)), rotateDir);
+  //     turn(4, rotateDir);
+  //
+  //     recordAngle(0, SERVO_WAIT, &left);
+  //     recordAngle(180, SERVO_WAIT, &right);
+  //     // if (left >= 26 || right >= 26) { // (we probably rotated the wrong way
+  //     // and
+  //     //                                  // now we're no longer blocked in)
+  //     //   int newFront = recordAngle(90, SERVO_WAIT, NULL);
+  //     //   return forwardEncounter(newFront);
+  //     // }
+  //   }
+  //   int rFront = recordAngle(90, SERVO_WAIT, NULL);
+  //   motorsBackDistance(USquareWidth - rFront + (USquareWidth / 2) + 3);
+  //   forwardEncounter((USquareWidth / 2));
+  //   return;
+  // }
 
   int speeds[] = {300, 600, 100}; // 13.43cm takes ~2 seconds
   // one way is open
@@ -244,7 +329,7 @@ void navigateMaze() {
   recordAngle(10, SERVO_WAIT, &left);
   if (left <= sideLimit) {
     motorsStop();
-    recordAngle(180, SERVO_WAIT, &right);
+    recordAngle(170, SERVO_WAIT, &right);
     fixPosition(left, right, forwardDistance);
   }
 
@@ -253,10 +338,12 @@ void navigateMaze() {
   if (leftDiag < 5 && left > sideLimit + 1) {
     motorsStop();
     // recordAngle(10, SERVO_WAIT, &left);
-    // recordAngle(180, SERVO_WAIT, &right);
+    // recordAngle(170, SERVO_WAIT, &right);
     int checkForwards = recordAngle(90, SERVO_WAIT, NULL);
-    if (checkForwards < 10) forwardEncounter(checkForwards);
-    else forwardEncounter(leftDiag);
+    if (checkForwards < 10)
+      forwardEncounter(checkForwards);
+    else
+      forwardEncounter(leftDiag);
   }
 
   // forward
@@ -265,7 +352,7 @@ void navigateMaze() {
     forwardEncounter(forwardDistance);
   }
 
-  recordAngle(180, SERVO_WAIT, &right);
+  recordAngle(170, SERVO_WAIT, &right);
   if (right <= sideLimit) {
     motorsStop();
     recordAngle(10, SERVO_WAIT, &left);
@@ -292,7 +379,6 @@ void navigateMaze() {
 // or we just rotate like normal
 
 
-
 ////////////////////////
 // END COPY FROM NVIM
 ////////////////////////////
@@ -314,15 +400,12 @@ void navigateMaze() {
 
     // objectDetectionTest();
     Serial.begin(9600); // note this will add computational lode, please comment out
-    // turn(90, LEFT);
-    // delay(700);
-    // turn(90, RIGHT);
-    // delay(700);
-    // turn(45, LEFT);
-    // delay(700);
-    // turn(45, RIGHT);
-    // turn(360, LEFT);
-    // servoTest();
+    // straightLineDemo();
+    // turn(360, RIGHT);
+    driveSquare(LEFT);
+    // driveSquare(RIGHT);
+
+
   }
 
 
@@ -331,7 +414,7 @@ void navigateMaze() {
   
     // turnTest();
     //  servoScanTest();
-    navigateMaze();
+    // navigateMaze();
     // servoTest();
   }
 

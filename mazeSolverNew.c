@@ -1,9 +1,11 @@
 #include "./rover.h"
 #include <cmath>
+#include <utility>
 
 const int USquareWidth = 19; // cm
+const int RoverWidth = 9;    // cm
 const int SERVO_WAIT = 125;  // ms
-const int sideLimit = 6;     // cm
+const int sideLimit = 5;     // cm
 
 void jankTurn(int theta, TDir direction, int time[], size_t length) {
   for (size_t i = 0; i < length; i++) {
@@ -43,12 +45,39 @@ void forwardEncounter(int front) {
   motorsStop();
   int left = recordAngle(10, SERVO_WAIT, NULL);
   int right = recordAngle(180, SERVO_WAIT, NULL);
-  int speeds1[] = {70, 70};
-  // if no walls either side pick left
-  if (left > 18 && right > 18) {
-    jankTurn(90, LEFT, speeds1, sizeof(speeds1) / sizeof(speeds1[0]));
-    return;
-  }
+  //   int speeds1[] = {70, 70};
+  // jankTurn(90, LEFT, speeds1, sizeof(speeds1) / sizeof(speeds1[0]));
+
+  // // if no walls either side pick left
+  // if (left > 16 && right > 16) {
+  //   turn(90, LEFT);
+  //   return;
+  // }
+  //
+  // // both blocked
+  // if (left <= 17 && right <= 17) {
+  //   // rotate until left + right = USquareWidth - roverWidth,, until straight
+  //   TDir rotateDir =
+  //       (left >= right) ? RIGHT : LEFT; // this is sort of just a guess
+  //   while ((left + right) - 4 > USquareWidth - RoverWidth) {
+  //     // turn((abs(left - right)), rotateDir);
+  //     turn(4, rotateDir);
+  //
+  //     recordAngle(0, SERVO_WAIT, &left);
+  //     recordAngle(180, SERVO_WAIT, &right);
+  //     // if (left >= 26 || right >= 26) { // (we probably rotated the wrong
+  //     way
+  //     // and
+  //     //                                  // now we're no longer blocked in)
+  //     //   int newFront = recordAngle(90, SERVO_WAIT, NULL);
+  //     //   return forwardEncounter(newFront);
+  //     // }
+  //   }
+  //   int rFront = recordAngle(90, SERVO_WAIT, NULL);
+  //   motorsBackDistance(USquareWidth - rFront + (USquareWidth / 2) + 3);
+  //   forwardEncounter((USquareWidth / 2));
+  //   return;
+  // }
 
   int speeds[] = {300, 600, 100}; // 13.43cm takes ~2 seconds
   // one way is open
