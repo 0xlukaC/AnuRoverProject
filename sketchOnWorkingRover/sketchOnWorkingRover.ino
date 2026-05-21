@@ -1,7 +1,8 @@
   #include <Servo.h>
   // https://canvas.anu.edu.au/courses/5696/assignments/24351
   // 123 / 30 (frames per second)
-  const int turn360 = 4100; // ms to turn 360 degrees at full speed 4050
+  const int turn360 = 3667; // ms to turn 360 degrees at full speed 4050  
+  //  2(55/30) = 3.66666666667 = 3666.66666667 ms 
   const int cmPs = 7; // 7 cm per second
 
   const int enablePin1 = 11;  // Green
@@ -80,7 +81,7 @@
 
 
   void setServoAngle (int angle, int delayTime) {
-    if (angle < 0 || angle > 180) {
+    if (angle < 0 || angle > 230) {
       Serial.println("Invalid angle. Must be between 0 and 180.");
       return;
     }
@@ -119,7 +120,7 @@
     int i = 0;
 
     while (1) {
-      setServoAngle(angles[i], 300);
+      setServoAngle(angles[i], 200);
       long distance = getDistanceCM();
 
       if (distance < 15) {
@@ -149,7 +150,7 @@
     long ForwardDistance = getDistanceCM();
     if (ForwardDistance < 10) {
       motorsStop();
-     motorsBack(300); // was 300
+      motorsBack(300); // was 300
       checkLeftRight(left, right);
       // if (left > right)  turn(90, LEFT);
       // else turn(90, RIGHT);
@@ -169,12 +170,137 @@
     motorsForward(0);
   }
 
+///////////////////////////////
+/// START COPY FROM NVIM
+//////////////////////////////const int USquareWidth = 19; // cm
+const int USquareWidth = 19; // cm
+const int SERVO_WAIT = 125;  // ms
+const int sideLimit = 6;     // cm
 
+void jankTurn(int theta, TDir direction, int time[], size_t length) {
+  for (size_t i = 0; i < length; i++) {
+    turn((int)round((double)theta / length), direction);
+    motorsForward(time[i]);
+  }
+}
+
+int recordAngle(int theta, int delay, int *dir) {
+  setServoAngle(theta, delay);
+  int dist = getDistanceCM();
+  if (dir != NULL) *dir = dist;
+  return dist;
+}
+
+void fixPosition(int left, int right, int front) {
+  motorsStop(); // motors should already be stopped, but just in case
+
+  int error = left - right;
+
+  if (abs(error) > 2) {
+
+    int theta = abs(error);
+
+    if (theta > 25) theta = 25;
+
+    int speeds[] = {100, 100, 100};
+    TDir dir = (error > 0) ? LEFT : RIGHT;
+    if (theta < 10)
+      turn(theta, dir);
+    else
+      jankTurn(theta, dir, speeds, 2);
+  }
+}
+
+void forwardEncounter(int front) {
+  motorsStop();
+  int left = recordAngle(10, SERVO_WAIT, NULL);
+  int right = recordAngle(180, SERVO_WAIT, NULL);
+  // if no walls either side pick left
+  if (left > 18 && right > 18) {
+    turn(90, LEFT);
+    return;
+  }
+
+  int speeds[] = {300, 600, 100}; // 13.43cm takes ~2 seconds
+  // one way is open
+  motorsBackDistance(USquareWidth - front);
+  if (left > right)
+    jankTurn(90, LEFT, speeds, sizeof(speeds) / sizeof(speeds[0]));
+  else
+    jankTurn(90, RIGHT, speeds, sizeof(speeds) / sizeof(speeds[0]));
+}
+
+void navigateMaze() {
+  int left, right;
+  int leftDiag, rightDiag;
+
+  int forwardDistance = recordAngle(90, SERVO_WAIT, NULL);
+
+  // forward
+  if (forwardDistance < 10) {
+    forwardEncounter(forwardDistance);
+  }
+
+  recordAngle(10, SERVO_WAIT, &left);
+  if (left <= sideLimit) {
+    motorsStop();
+    recordAngle(180, SERVO_WAIT, &right);
+    fixPosition(left, right, forwardDistance);
+  }
+
+  // leftDiag
+  recordAngle(60, SERVO_WAIT, &leftDiag);
+  if (leftDiag < 5 && left > sideLimit + 1) {
+    motorsStop();
+    // recordAngle(10, SERVO_WAIT, &left);
+    // recordAngle(180, SERVO_WAIT, &right);
+    int checkForwards = recordAngle(90, SERVO_WAIT, NULL);
+    if (checkForwards < 10) forwardEncounter(checkForwards);
+    else forwardEncounter(leftDiag);
+  }
+
+  // forward
+  forwardDistance = recordAngle(90, SERVO_WAIT, NULL);
+  if (forwardDistance < 10) {
+    forwardEncounter(forwardDistance);
+  }
+
+  recordAngle(180, SERVO_WAIT, &right);
+  if (right <= sideLimit) {
+    motorsStop();
+    recordAngle(10, SERVO_WAIT, &left);
+    fixPosition(left, right, forwardDistance);
+  }
+
+  // rightDiag
+  recordAngle(120, SERVO_WAIT, &rightDiag);
+  if (rightDiag < 5 && right > sideLimit + 1) {
+    motorsStop();
+    int checkForwards = recordAngle(90, SERVO_WAIT, NULL);
+    if (checkForwards < 10) forwardEncounter(checkForwards);
+    // recordAngle(170, SERVO_WAIT, &right);
+    // recordAngle(10, SERVO_WAIT, &left);
+    forwardEncounter(rightDiag);
+  }
+
+  motorsForward(0);
+}
+
+// what about when we're so angled to the side wall, the 90 scan picks it up as
+// a wall
+//    maybe we could use the diag then?
+// or we just rotate like normal
+
+
+
+////////////////////////
+// END COPY FROM NVIM
+////////////////////////////
 
   // SETUP
   void setup() {
     delay(2000);
-    // setServoAngle(90, 100);
+    setServoAngle(90, 100);
     pinMode(triggerPin, OUTPUT);
     pinMode(echoPin, INPUT);  
 
@@ -195,7 +321,8 @@
     // turn(45, LEFT);
     // delay(700);
     // turn(45, RIGHT);
-    turn(360, LEFT);
+    // turn(360, LEFT);
+    // servoTest();
   }
 
 
@@ -204,6 +331,8 @@
   
     // turnTest();
     //  servoScanTest();
+    navigateMaze();
+    // servoTest();
   }
 
 // 
@@ -214,14 +343,29 @@
 
 
   void testSonar(){
-    Serial.begin(9600);
+    // Serial.begin(9600);
     Serial.println(getDistanceCM());
     delay(100);
   }
 
-  void servoTest() {
+ void servoTest() {
     setServoAngle(90, 500);   // pointing straight
+    Serial.print("Angle 90 - Distance: ");
+    Serial.println(getDistanceCM());
+    Serial.flush(); // Wait for data to actually transmit
+
     setServoAngle(180, 500);  // pointing left
-    setServoAngle(0 , 500); // pointing right
-    setServoAngle(180, 500); // back pointing left
-  }
+    Serial.print("Angle 180 - Distance: ");
+    Serial.println(getDistanceCM());
+    Serial.flush();
+
+    setServoAngle(0, 500);    // pointing right
+    Serial.print("Angle 0 - Distance: ");
+    Serial.println(getDistanceCM());
+    Serial.flush();
+    
+    setServoAngle(180, 500);  // back pointing left
+    Serial.print("Angle 180 - Distance: ");
+    Serial.println(getDistanceCM());
+    Serial.flush();
+}

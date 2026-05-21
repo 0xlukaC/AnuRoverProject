@@ -29,7 +29,7 @@ void delay(unsigned long ms);
 void delayMicroseconds(unsigned int us);
 
 void Serial_begin(long baud);
-// void Serial_println(const char *s);
+void Serial_println(const char *s);
 // void Serial_println(long v);
 // void Serial_print(const char *s);
 // void Serial_print(long v);
@@ -37,7 +37,7 @@ void Serial_begin(long baud);
 // map Arduino Serial → simple namespace stub
 struct Serial_t {
   void begin(long b) { Serial_begin(b); }
-  // void println(const char *s) { Serial_println(s); }
+  void println(const char *s) { Serial_println(s); }
   // void println(long v) { Serial_println(v); }
   // void print(const char *s) { Serial_print(s); }
   // void print(long v) { Serial_print(v); }

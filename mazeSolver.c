@@ -3,6 +3,8 @@
 
 // redefine TDir to contain Back and fowards
 
+const int SSTOP = 150;
+
 struct prevMoves {
   int time;
   TDir dir;
@@ -13,10 +15,34 @@ struct prevMoves {
 int *recordAngle(int theta, int delay, int *dir) {
   setServoAngle(theta, delay);
   int dist = getDistanceCM();
-  if (dir != NULL)
-    dir = &dist;
+  if (dir != NULL) dir = &dist;
   return dir;
 }
+
+// void fixPosition(int left, int right, int front) {
+//   motorsStop(); // motors should already be stopped, but just in case
+//   int problemSide = (left < right) ? left : right; // smallest side
+//   int otherSide = (left > right) ? left : right;   // largest side
+//   TDir turnAway = (left > right) ? LEFT : RIGHT;
+//
+//   int idealRight = USquareWidth - problemSide;
+//   // int theta = acos((double)idealRight / otherSide);
+//   int theta = acos((double)idealRight / otherSide) * 180.0 / PI;
+//
+//   if (theta > 10 || (abs(idealRight - right) > 3)) // > some threshhold
+//     turn(theta, turnAway);
+//   // case where it is parallel, but just really close
+// }
+//
+
+void jankTurn(int theta, TDir direction, int time[], size_t length) {
+  for (size_t i = 0; i < length; i++) {
+    turn((int)round((double)theta / length), direction);
+    motorsForward(time[i]);
+  }
+}
+
+int lastLeftCheck, lastRightCheck = 0;
 
 // distance from left wall, distance from right wall, distance from front wall,
 // do not touch walls
@@ -32,8 +58,8 @@ void fixPosition(int left, int right, int front) {
   // adjacent case 2: we are too close to adjacent
   //
 
-  // case where were almost touching adjacent wall
-  while (left <= 3 || right <= 3) {
+  // case where we're almost touching adjacent wall
+  while (left <= 4 || right <= 4) {
     if (front < SAFE_FRONT) {
       turn(20, (left < right) ? LEFT : RIGHT);
       motorsBackDistance(3);
@@ -48,57 +74,56 @@ void fixPosition(int left, int right, int front) {
     right = *recordAngle(180, 300, NULL);
   }
 
-  int error = left - right;
-
-  // already centred → go straight
-  if (abs(error) <= DEADZONE)
-    return;
-
-  if (error > 0)
-    turn(3, LEFT); // more space on left → drift left
-  else
-    turn(3, RIGHT); // more space on right → drift right
+  // int error = left - right;
+  //
+  // // already centred → go straight
+  // if (abs(error) <= DEADZONE) return;
+  // if (error > 0) {
+  //   turn(3, LEFT); // more space on left → drift left
+  // }
+  // else
+  //   turn(3, RIGHT); // more space on right → drift right
 }
 
 void forwardEncounter(int distance) {
-  int left = *recordAngle(10, 200, NULL);
-  int right = *recordAngle(170, 200, NULL);
-  // bools
-  int collisionTRight = right > 16;
-  int colliisionTLeft = left > 16; // the rover is 16.5 cm long
-  int gLeft = left <= 15;
-  int gRight = right <= 15;
-
-  motorsStop();
-
-  // WARNING:
-  fixPosition(left, right, distance);
-
-  if (gLeft && gRight) { // you are boxed in; the only way to go is backwards
-    int newDistance = 7 + (19 - distance);
-    motorsBackDistance(newDistance); // go 7 back into the previous squre
-
-    // maybe just call this function again
-  }
-  // we need to check whether rotating would hit a wall or not
-
-  // both ways are open This could also mean you back is to the wall
-  if (!gLeft && !gRight) {
-    // motorsBack(300); // choose left |
-    turn(90, LEFT);
-  }
-
-  // one way is open
-  motorsBack(300);
-  if (left > right)
-    turn(90, LEFT);
-  else
-    turn(90, RIGHT);
-
-  // if (lef)
+  // int left = *recordAngle(10, 200, NULL);
+  // int right = *recordAngle(170, 200, NULL);
+  // // bools
+  // int collisionTRight = right > 16;
+  // int colliisionTLeft = left > 16; // the rover is 16.5 cm long
+  // int gLeft = left <= 15;
+  // int gRight = right <= 15;
+  //
+  // motorsStop();
+  //
+  // // WARNING:
+  // fixPosition(left, right, distance);
+  //
+  // if (gLeft && gRight) { // you are boxed in; the only way to go is backwards
+  //   int newDistance = 7 + (19 - distance);
+  //   motorsBackDistance(newDistance); // go 7 back into the previous squre
+  //
+  //   // maybe just call this function again
+  // }
+  // // we need to check whether rotating would hit a wall or not
+  //
+  // // both ways are open This could also mean you back is to the wall
+  // if (!gLeft && !gRight) {
+  //   // motorsBack(300); // choose left |
+  //   turn(90, LEFT);
+  // }
+  //
+  // // one way is open
+  // motorsBack(300);
+  // if (left > right)
+  //   turn(90, LEFT);
+  // else
+  //   turn(90, RIGHT);
+  //
+  // // if (lef)
 }
 
-const int sideLimit = 3;
+const int sideLimit = 4;
 const int diagLimit = 5;
 
 void navigateMaze() {
@@ -111,28 +136,28 @@ void navigateMaze() {
     forwardEncounter(forwardDistance);
   }
 
-  recordAngle(45, 10, &leftDiag);
+  recordAngle(45, SSTOP - 20, &leftDiag);
   if (leftDiag <=
       diagLimit) { // pretty much just treat this as a regular wall in front
     forwardEncounter(leftDiag);
   }
 
-  recordAngle(10, 50, &left);
+  recordAngle(10, SSTOP, &left);
   if (left <= sideLimit) { // stop, check we're not boxed in/facing a 45 wall
     fixPosition(left, right, 40);
   }
 
-  forwardDistance = *recordAngle(90, 150, NULL);
+  forwardDistance = *recordAngle(90, SSTOP, NULL);
   if (forwardDistance < 10) {
     forwardEncounter(forwardDistance);
   }
 
-  recordAngle(135, 10, &rightDiag);
+  recordAngle(135, SSTOP, &rightDiag);
   if (rightDiag < diagLimit) {
     forwardEncounter(rightDiag);
   }
 
-  recordAngle(170, 50, &right);
+  recordAngle(170, SSTOP, &right);
   if (right < sideLimit) {
     fixPosition(left, right, 40);
   }
