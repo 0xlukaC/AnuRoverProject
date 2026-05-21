@@ -1,7 +1,7 @@
   #include <Servo.h>
   // https://canvas.anu.edu.au/courses/5696/assignments/24351
   // 123 / 30 (frames per second)
-  const int turn360 = 4000; // ms to turn 360 degrees at full speed 4050
+  const int turn360 = 4950; // ms to turn 360 degrees at full speed 4050
   const int cmPs = 7; // 7 cm per second
 
   const int enablePin1 = 11;  // Green
@@ -57,9 +57,14 @@
     motorsStop();
   }
 
-  
+  void motorsBackDistance(int distance) {
+    int time = (distance / cmPs) * 1000; // convert to ms
+    motorsBack(time);
+  }
 
-  void turn(double theta, TDir dir ) {
+  
+  // Chnaged Double to Int
+  void turn(int theta, TDir dir ) {
     digitalWrite(enablePin1, HIGH); digitalWrite(enablePin2, HIGH);
     if (dir == RIGHT) {
       digitalWrite(motor1Pin1, LOW); digitalWrite(motor1Pin2, HIGH);
@@ -79,8 +84,8 @@
       Serial.println("Invalid angle. Must be between 0 and 180.");
       return;
     }
-    //angle -= abs(180); // invert because 0 and 180 are swapped around
-    angle = 180 - angle;
+    //angle -= abs(180); 
+    angle = 180 - angle; // invert because 0 and 180 are swapped around
     myServo.attach(Green10);
     myServo.write(angle);
     if (delayTime && delayTime > 0) delay(delayTime);
@@ -128,54 +133,6 @@
   }
 
 
-  // Third test:
-  void scan(int &left, int &front, int &right) {
-    setServoAngle(170, 200);
-    left = getDistanceCM();
-
-    setServoAngle(90, 200);
-    front = getDistanceCM();
-
-    setServoAngle(10, 200);
-    right = getDistanceCM();
-
-    setServoAngle(90, 100); // reset forward
-  }
-
-  void centreDrive() {
-    int left, front, right;
-
-    scan(left, front, right);
-
-    // FRONT BLOCKED → TURN
-    if (front < 10) { // WALL
-      motorsStop();
-      motorsBack(300);
-
-      if (left > right) {
-        turn(90, LEFT);
-      } else {
-        turn(90, RIGHT);
-      }
-      return;
-    }
-
-    // WALL FOLLOWING (centering)
-    int error = left - right;
-
-    motorsForwardDistance(5);
-    delay(100);
-    // if (abs(error) < 30) {
-    //   motorsForwardDistance(5); // straight
-    // } else if (error > 0) {
-    //   // more space on left → drift left
-    //   turn(2, LEFT);
-    // } else {
-    //   // more space on right → drift right
-    //   turn(2, RIGHT);
-    // }
-  }
-
   void checkLeftRight(int &left, int &right) {
   setServoAngle(170, 200);
     right = getDistanceCM();
@@ -192,10 +149,15 @@
     long ForwardDistance = getDistanceCM();
     if (ForwardDistance < 10) {
       motorsStop();
-      motorsBack(300);
+      motorsBack(150); // was 300
       checkLeftRight(left, right);
-      if (left > right)  turn(90, LEFT);
-      else turn(90, RIGHT);
+      // if (left > right)  turn(90, LEFT);
+      // else turn(90, RIGHT);
+      int backupAngle = 15;
+      turn(backupAngle, (left > right) ? LEFT : RIGHT);
+      // motorsBackDistance(4);
+      motorsBack(300);
+      turn(90 - backupAngle, (left < right) ? LEFT : RIGHT);
     }
     motorsForward(0);
   }
@@ -218,8 +180,23 @@
     pinMode(motor2Pin2, OUTPUT);  // motor2Pin2
 
     // objectDetectionTest();
-    Serial.begin(9600);
+    // Serial.begin(9600); // note this will add computational lode, please comment out
   }
+
+
+  // LOOP
+  void loop() {
+  
+    turnTest();
+    //  servoScanTest();
+  }
+
+// 
+// 
+// 
+// 
+// 
+
 
   void testSonar(){
     Serial.begin(9600);
@@ -233,22 +210,4 @@
     setServoAngle(0 , 500); // pointing right
     setServoAngle(180, 500); // back pointing left
   }
-
-  // LOOP
-  void loop() {
-  
-    // testSonar();
-  //  centreDrive();
-    turnTest();
-    //  servoScanTest();
-  }
-
-  /* HOW TO NAVIGATE MAZE:
-    variable, best Direction = the best angle the rover can go after it has scanned
-
-
-  */
-
-
-
 

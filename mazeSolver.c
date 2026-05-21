@@ -1,4 +1,5 @@
 #include "./rover.h"
+#include <cmath>
 
 // redefine TDir to contain Back and fowards
 
@@ -21,66 +22,76 @@ int *recordAngle(int theta, int delay, int *dir) {
 void fixPosition(int left, int right, int front) {
   // given a square is 19cm^2 and our rover is 16cm long
 
+  // NOTE: ASSUME MOTORS ARE STOPPED
   const int TARGET = 9; // centre of 19cm corridor ≈ 9.5cm
-  const int SAFE_FRONT = 11;
-  const int DEADZONE = 2;
+  const int SAFE_FRONT = 5;
+  const int DEADZONE = 5;
 
-  // --- FRONT WALL HANDLING ---
-  if (front < SAFE_FRONT) {
-    motorsStop();
-    motorsBack(300);
+  // case 1: we have a wall infront and we are too close to both front and
+  // adjacent case 2: we are too close to adjacent
+  //
 
-    // choose direction with more space
-    if (left > right) {
-      turn(90, LEFT);
+  // case where were almost touching adjacent wall
+  while (left <= 3 || right <= 3) {
+    if (front < SAFE_FRONT) {
+      turn(20, (left < right) ? LEFT : RIGHT);
+      motorsBackDistance(3);
+      turn(20, (left >= right) ? LEFT : RIGHT); // undo it
     } else {
-      turn(90, RIGHT);
+      // opposite direction
+      turn(50, (left < right) ? LEFT : RIGHT);
+      motorsBackDistance(5);
+      turn(50, (left >= right) ? LEFT : RIGHT); // undo it
     }
-    return;
+    left = *recordAngle(0, 300, NULL);
+    right = *recordAngle(180, 300, NULL);
   }
 
-  // --- LEFT/RIGHT CENTRING ERROR ---
-  int error = (left - right);
+  int error = left - right;
 
   // already centred → go straight
-  if (abs(error) <= DEADZONE) {
-    motorsForward();
-    return;
-  }
+  if (abs(error) <= DEADZONE) return;
 
-  // --- CORRECTION ---
-  if (error > 0) {
-    // more space on left → drift left
-    turn(3, LEFT);
-  } else {
-    // more space on right → drift right
-    turn(3, RIGHT);
-  }
-
-  motorsForward();
+  if (error > 0)
+    turn(3, LEFT); // more space on left → drift left
+  else
+    turn(3, RIGHT); // more space on right → drift right
 }
 
 void forwardEncounter(int distance) {
   int left = *recordAngle(10, 200, NULL);
   int right = *recordAngle(170, 200, NULL);
+  // bools
   int collisionTRight = right > 16;
-  int colliisionTLeft = left > 16; // bool  the rover is 16.5 cm long
-  int gLeft = left <= 10;
-  int gRight = right <= 10;
+  int colliisionTLeft = left > 16; // the rover is 16.5 cm long
+  int gLeft = left <= 15;
+  int gRight = right <= 15;
+
+  motorsStop();
+
+  // WARNING:
+  fixPosition(left, right, distance);
 
   if (gLeft && gRight) { // you are boxed in; the only way to go is backwards
-    distance = 7 + (19 - distance) motorsBackDistance(
-                       distance); // go 7 back into the previous squre
+    int newDistance = 7 + (19 - distance);
+    motorsBackDistance(newDistance); // go 7 back into the previous squre
 
     // maybe just call this function again
   }
   // we need to check whether rotating would hit a wall or not
 
-  if (!gLeft && !gRight) { // both ways are open
+  // both ways are open This could also mean you back is to the wall
+  if (!gLeft && !gRight) {
+    // motorsBack(300); // choose left |
+    turn(90, LEFT);
   }
 
   // one way is open
-  // if (left > 10
+  motorsBack(300);
+  if (left > right)
+    turn(90, LEFT);
+  else
+    turn(90, RIGHT);
 
   // if (lef)
 }
@@ -99,31 +110,32 @@ void navigateMaze() {
   }
 
   recordAngle(45, 10, &leftDiag);
-  if (leftDiag <= diagLimit) {
+  if (leftDiag <=
+      diagLimit) { // pretty much just treat this as a regular wall in front
+    forwardEncounter(leftDiag);
   }
 
   recordAngle(10, 50, &left);
   if (left <= sideLimit) { // stop, check we're not boxed in/facing a 45 wall
+    fixPosition(left, right, 40);
   }
-
-  // recordAngle(45, 10, &leftDiag);
-  // if (leftDiag <= 5) {}
 
   forwardDistance = *recordAngle(90, 150, NULL);
   if (forwardDistance < 10) {
+    forwardEncounter(forwardDistance);
   }
 
   recordAngle(135, 10, &rightDiag);
   if (rightDiag < diagLimit) {
+    forwardEncounter(rightDiag);
   }
 
   recordAngle(170, 50, &right);
   if (right < sideLimit) {
+    fixPosition(left, right, 40);
   }
 
-  if (left - right > 15) {
-  }
-
+  fixPosition(left, right, 40); // 40 > square length
   // recordAngle(135, 10, &rightDiag);
   // if (rightDiag < diagLimit) {}
 
